@@ -1,0 +1,50 @@
+---
+- hosts: host
+  remote_user: vagrant
+  sudo: yes
+  tasks:
+    - name: install core package
+      apt: pkg={{item}} update_cache=yes
+      with_items:
+        - build-essential
+        - git
+        - curl
+        - zlib1g-dev
+        - libssl-dev
+        - libreadline-dev
+        - libyaml-dev
+        - libxml2-dev
+        - libxslt-dev
+
+- hosts: host
+  remote_user: vagrant
+  tasks:
+    - name: install rbenv
+      git: repo=https://github.com/sstephenson/rbenv.git dest=~/.rbenv
+
+    - name: create plugint dir
+      file: path=.bash.d mode=700 owner=vagrant state=directory
+
+    - name: rbenv bash
+      copy: src=./rbenv_bash dest=~/.bash.d/rbenv.bash mode=700 owner=vagrant
+
+    - name: write rbenv setting .bashrc
+      lineinfile: dest=~/.bash_profile regexp="rbenv" insertafter=EOF line="source ~/.bash.d/rbenv.bash" create=yes
+
+    - name: create plugint dir
+      file: path=~/.rbenv/plugins state=directory
+
+    - name: install ruby-build
+      git: repo=https://github.com/sstephenson/ruby-build.git dest=~/.rbenv/plugins/ruby-build
+
+    - name: ckeck install ruby
+      shell: "~/.rbenv/bin/rbenv versions | grep 2.1.1"
+      register: installed
+      ignore_errors: yes
+
+    - name: install ruby
+      command: ~/.rbenv/bin/rbenv install 2.1.1
+      when: installed|skipped
+
+    - name: setting global ruby version
+      command: ~/.rbenv/bin/rbenv global 2.1.1
